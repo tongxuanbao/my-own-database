@@ -1,12 +1,21 @@
 package main
 
-import "encoding/binary"
+import (
+	"bytes"
+	"encoding/binary"
+)
 
 func assert(condition bool) {
 	if !condition {
 		panic("Assertion failed")
 	}
 }
+
+const HEADER = 4
+
+const BTREE_PAGE_SIZE = 4096
+const BTREE_MAX_KEY_SIZE = 1000
+const BTREE_MAX_VAL_SIZE = 3000
 
 const (
 	BNODE_NODE = 1 // internal nodes without values
@@ -88,11 +97,23 @@ func (node BNode) nbytes() uint16 {
 	return node.kvPos(node.nkeys())
 }
 
-const HEADER = 4
+// returns the first kid node whose range intersect the key (kid[i] <= key)
+func nodeLookupLE(node BNode, key []byte) uint16 {
+	nkeys := node.nkeys()
+	found := uint16(0)
 
-const BTREE_PAGE_SIZE = 4096
-const BTREE_MAX_KEY_SIZE = 1000
-const BTREE_MAX_VAL_SIZE = 3000
+	for i := uint16(1); i < nkeys; i++ {
+		cmp := bytes.Compare(node.getKey(i), key)
+		if cmp <= 0 { // kid[i] >= key
+			found = i
+		}
+		if cmp >= 0 { // kid[i] <= key
+			break
+		}
+	}
+
+	return found
+}
 
 func init() {
 	node1max := HEADER + 8 + 2 + 4 + BTREE_MAX_KEY_SIZE + BTREE_MAX_VAL_SIZE
