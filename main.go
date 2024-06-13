@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	// "bytes"
 	"encoding/binary"
 )
 
@@ -48,15 +48,15 @@ func (node BNode) setHeader(btype uint16, nkeys uint16) {
 }
 
 // pointer
-func (node BNode) getPtr(idx uint16) uint16 {
+func (node BNode) getPtr(idx uint16) uint64 {
 	assert(idx < node.nkeys())
 	pos := HEADER + 8*idx
-	return binary.LittleEndian.Uint16(node.data[pos:])
+	return binary.LittleEndian.Uint64(node.data[pos:])
 }
-func (node BNode) setPtr(idx uint16, val uint16) {
+func (node BNode) setPtr(idx uint16, val uint64) {
 	assert(idx < node.nkeys())
 	pos := HEADER + 8*idx
-	binary.LittleEndian.PutUint16(node.data[pos:], val)
+	binary.LittleEndian.PutUint64(node.data[pos:], val)
 }
 
 // offset list
@@ -74,6 +74,7 @@ func (node BNode) setOffset(idx uint16, offset uint16) {
 	binary.LittleEndian.PutUint16(node.data[offsetPos(node, idx):], offset)
 }
 
+/*
 // key-values
 func (node BNode) kvPos(idx uint16) uint16 {
 	assert(idx <= node.nkeys())
@@ -138,7 +139,7 @@ func leafUpdate(
 
 func nodeAppendRange(
 	new BNode, old BNode,
-	dstNew uint16, srcOld uint16, n uint16
+	dstNew uint16, srcOld uint16, n uint16,
 ) {
 	assert(srcOld+n + old.nkeys())
 	assert(dstNew+n + new.nkeys())
@@ -183,8 +184,8 @@ func nodeAppendKV(new BNode, idx int16, ptr uint16, key []byte, val []byte) {
 // and splitting and allocating result nodes
 func treeInsert(tree *BTree, node BNode, key []byte, val []byte) BNode {
 	// the result note.
-	// it's allowed to be bigger than 1 page and will be s[lit if so
-	new := BNode(data: make([]byte, 2*BTREE_PAGE_SIZE))
+	// it's allowed to be bigger than 1 page and will be split if so
+	new := BNode{data: make([]byte, 2*BTREE_PAGE_SIZE)}
 	
 	// where to insert the key?
 	idx := nodeLookupLE(node, key)
@@ -236,20 +237,21 @@ func nodeSplit3(old BNode) (uint16, [3]BNode) {
 		old.data = old.data[:BTREE_PAGE_SIZE]
 		return 1, [3]BNode{old}
 	}
-	left := BNode(make([]byte), 2*BTREE_PAGE_SIZE) // might be split late
-	right := BNode(make([]byte}, BTREE_PAGE_SIZE)
+	left := BNode{make([]byte, 2*BTREE_PAGE_SIZE)} // might be split late
+	right := BNode{make([]byte), BTREE_PAGE_SIZE)}
 	nodeSplit2(left, right, old)
 
 	if left.nbytes() <= BTREE_PAGE_SIZE {
 		left.data = left.data[:BTREE_PAGE_SIZE]
 		return 2, [3]BNode{left, right}
 	}
-	leftLeft := BNode(make([]byte), BTREE_PAGE_SIZE)
-	middle := BNode(make([]byte}, BTREE_PAGE_SIZE)
+	leftLeft := BNode{make([]byte, BTREE_PAGE_SIZE)}
+	middle := BNode{make([]byte, BTREE_PAGE_SIZE)}
 	nodeSplit2(leftLeft, middle, left)
 	assert(leftLeft.nbytes() <= BTREE_PAGE_SIZE)
 	return 3, [3]BNode{leftLeft, middle, right}
 }
+*/
 
 func init() {
 	node1max := HEADER + 8 + 2 + 4 + BTREE_MAX_KEY_SIZE + BTREE_MAX_VAL_SIZE
